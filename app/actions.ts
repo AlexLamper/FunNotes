@@ -4,6 +4,10 @@ import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import axios from 'axios'
+
+const AI_ML_API_URL = process.env.AI_ML_API_URL
+const AI_ML_API_KEY = process.env.AI_ML_API_KEY
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -132,3 +136,36 @@ export const signOutAction = async () => {
   await supabase.auth.signOut();
   return redirect("/sign-in");
 };
+
+export async function callAPI(input: string) {
+  if (!AI_ML_API_URL || !AI_ML_API_KEY) {
+    throw new Error('API configuration is missing');
+  }
+
+  try {
+    // Assuming the correct endpoint is '/chat/completions'
+    const response = await axios.post(
+      `${AI_ML_API_URL}/chat/completions`, // Ensure this path is correct
+      {
+        model: 'mistralai/Mistral-7B-Instruct-v0.2', // Example model ID
+        messages: [
+          { role: 'system', content: 'You are a travel agent. Be descriptive and helpful' },
+          { role: 'user', content: input },
+        ],
+        temperature: 0.7,
+        max_tokens: 256,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${AI_ML_API_KEY}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    const err = error as any;
+    console.error('API call error:', err.response?.data || err.message || err);
+    throw new Error('Failed to call API');
+  }
+}

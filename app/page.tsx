@@ -1,12 +1,11 @@
-import Hero from "@/components/hero";
+import FunNotesForm from '@/components/fun-notes-form'
 
-export default async function Home() {
+export default function Home() {
   return (
-    <>
-      <Hero />
-      <main className="flex-1 flex flex-col gap-6 px-4">
-        <h3>Hey!</h3>
-      </main>
-    </>
-  );
+    <main className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">API Test</h1>
+      <FunNotesForm />
+    </main>
+  )
 }
+
