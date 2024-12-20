@@ -4,7 +4,7 @@ import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import axios from 'axios'
+import axios from 'axios';
 
 const AI_ML_API_URL = process.env.AI_ML_API_URL
 const AI_ML_API_KEY = process.env.AI_ML_API_KEY
@@ -138,34 +138,48 @@ export const signOutAction = async () => {
 };
 
 export async function callAPI(input: string) {
-  if (!AI_ML_API_URL || !AI_ML_API_KEY) {
+  const apiUrl = process.env.AI_ML_API_URL || 'https://api.aimlapi.com/v1';
+  const apiKey = process.env.AI_ML_API_KEY;
+
+  if (!apiUrl || !apiKey) {
     throw new Error('API configuration is missing');
   }
 
   try {
-    // Assuming the correct endpoint is '/chat/completions'
-    const response = await axios.post(
-      `${AI_ML_API_URL}/chat/completions`, // Ensure this path is correct
+    const response = await axios.post<{ choices: { message: { content: string } }[] }>(
+      `${apiUrl}/chat/completions`,
       {
-        model: 'mistralai/Mistral-7B-Instruct-v0.2', // Example model ID
+        model: 'mistralai/Mistral-7B-Instruct-v0.1',
         messages: [
-          { role: 'system', content: 'You are a travel agent. Be descriptive and helpful' },
+          {
+            role: 'system',
+            content:
+              'You are a helpful assistant. Your task is to improve the user\'s note by correcting spelling and grammar, aligning the text properly, and adding fun elements such as emojis where appropriate. Do not include any additional information or context.',
+          },
           { role: 'user', content: input },
         ],
-        temperature: 0.7,
+        temperature: 0.8,
         max_tokens: 256,
       },
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${AI_ML_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
         },
       }
     );
-    return response.data;
-  } catch (error) {
-    const err = error as any;
-    console.error('API call error:', err.response?.data || err.message || err);
-    throw new Error('Failed to call API');
+    return response.data.choices[0].message.content;
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response: any };
+      console.error('API call error details:', axiosError.response?.data || 'No response data available');
+      throw new Error(`API call failed: ${axiosError.response?.data?.message || 'Unknown error'}`);
+    } else if (error instanceof Error) {
+      console.error('Unexpected error:', error.message);
+      throw new Error(error.message);
+    } else {
+      console.error('Unexpected error:', error);
+      throw new Error('An unknown error occurred');
+    }
   }
 }
